@@ -1,5 +1,5 @@
 # Parallel Python Software: http://www.parallelpython.com
-# Copyright (c) 2005-2012, Vitalii Vanovschi
+# Copyright (c) 2005-2017, Vitalii Vanovschi
 # All rights reserved.
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -36,8 +36,8 @@ import socket
 import struct
 import types
 
-copyright = "Copyright (c) 2005-2012 Vitalii Vanovschi. All rights reserved"
-version = "1.6.5"
+copyright = "Copyright (c) 2005-2017 Vitalii Vanovschi. All rights reserved"
+version = "1.6.6"
 
 
 # compartibility with Python 2.6
@@ -117,7 +117,9 @@ class PipeTransport(Transport):
     def __init__(self, r, w):
         self.scache = {}
         self.exiting = False
-        if isinstance(r, types.FileType) and isinstance(w, types.FileType):
+        # if isinstance(r, types.FileType) and isinstance(w, types.FileType):
+        from io import IOBase
+        if isinstance(r, IOBase) and isinstance(w, IOBase):
             self.r = r
             self.w = w
         else:
@@ -139,7 +141,7 @@ class PipeTransport(Transport):
             if msg == "":
                 raise RuntimeError("Communication pipe read error")
             r_size += len(msg)
-            data += msg
+            data += msg.decode('utf8')
         e_size = struct.unpack("!Q", data)[0]
 
         r_size = 0
@@ -149,7 +151,7 @@ class PipeTransport(Transport):
             if msg == "":
                 raise RuntimeError("Communication pipe read error")
             r_size += len(msg)
-            data += msg
+            data += msg.decode('utf8')
 
         return map(preprocess, (data, ))[0]
 
@@ -171,7 +173,7 @@ class SocketTransport(Transport):
     def send(self, data):
         size = struct.pack("!Q", len(data))
         t_size = struct.calcsize("!Q")
-        s_size = 0L
+        s_size = 0
         while s_size < t_size:
             p_size = self.socket.send(size[s_size:])
             if p_size == 0:
@@ -179,7 +181,7 @@ class SocketTransport(Transport):
             s_size += p_size
 
         t_size = len(data)
-        s_size = 0L
+        s_size = 0
         while s_size < t_size:
             p_size = self.socket.send(data[s_size:])
             if p_size == 0:

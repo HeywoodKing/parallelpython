@@ -1,6 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 # Parallel Python Software: http://www.parallelpython.com
-# Copyright (c) 2005-2012, Vitalii Vanovschi
+# Copyright (c) 2005-2017, Vitalii Vanovschi
 # All rights reserved.
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -49,8 +49,8 @@ import ppauto
 import ppcommon
 import pptransport
 
-copyright = "Copyright (c) 2005-2012 Vitalii Vanovschi. All rights reserved"
-version = "1.6.5"
+copyright = "Copyright (c) 2005-2017 Vitalii Vanovschi. All rights reserved"
+version = "1.6.6"
 
 LISTEN_SOCKET_TIMEOUT = 20
 
@@ -124,7 +124,7 @@ class _NetworkServer(pp.Server):
             self.ssocket.settimeout(LISTEN_SOCKET_TIMEOUT)
             self.ssocket.bind((self.host, self.port))
             self.ssocket.listen(5)
-        except socket.error, e:
+        except socket.error as e:
             self.logger.error("Cannot create socket for %s:%s, %s", self.host, self.port, e)
 
         try:
@@ -214,7 +214,7 @@ def parse_config(file_loc):
     # If we don't have configobj installed then let the user know and exit
     try:
         from configobj import ConfigObj
-    except ImportError, ie:
+    except ImportError as ie:
         print >> sys.stderr, ("ERROR: You must have config obj installed to use"
                 "configuration files. You can still use command line switches.")
         sys.exit(1)
@@ -222,6 +222,10 @@ def parse_config(file_loc):
     if not os.access(file_loc, os.F_OK):
         print >> sys.stderr, "ERROR: Can not access %s." % arg
         sys.exit(1)
+
+    args = {}
+    autodiscovery = False
+    debug = False
 
     # Load the configuration file
     config = ConfigObj(file_loc)
@@ -254,7 +258,7 @@ def parse_config(file_loc):
         pass
 
     try:
-        args['loglevel'] = config['general'].as_bool('debug')
+        debug  = config['general'].as_bool('debug')
     except:
         pass
 
@@ -288,44 +292,44 @@ def parse_config(file_loc):
     except:
         pass
     # Return a tuple of the args dict and autodiscovery variable
-    return args, autodiscovery
+    return args, autodiscovery, debug
 
 
 def print_usage():
     """Prints help"""
-    print "Parallel Python Network Server (pp-" + version + ")"
-    print "Usage: ppserver.py [-hdar] [-f format] [-n proto]"\
+    print("Parallel Python Network Server (pp-" + version + ")")
+    print("Usage: ppserver.py [-hdar] [-f format] [-n proto]"\
             " [-c config_path] [-i interface] [-b broadcast]"\
             " [-p port] [-w nworkers] [-s secret] [-t seconds]"\
-            " [-k seconds] [-P pid_file]"
-    print
-    print "Options: "
-    print "-h                 : this help message"
-    print "-d                 : set log level to debug"
-    print "-f format          : log format"
-    print "-a                 : enable auto-discovery service"
-    print "-r                 : restart worker process after each"\
-            " task completion"
-    print "-n proto           : protocol number for pickle module"
-    print "-c path            : path to config file"
-    print "-i interface       : interface to listen"
-    print "-b broadcast       : broadcast address for auto-discovery service"
-    print "-p port            : port to listen"
-    print "-w nworkers        : number of workers to start"
-    print "-s secret          : secret for authentication"
-    print "-t seconds         : timeout to exit if no connections with "\
-            "clients exist"
-    print "-k seconds         : socket timeout in seconds"
-    print "-P pid_file        : file to write PID to"
-    print
-    print "To print server stats send SIGUSR1 to its main process (unix only). "
-    print 
-    print "Due to the security concerns always use a non-trivial secret key."
-    print "Secret key set by -s switch will override secret key assigned by"
-    print "pp_secret variable in .pythonrc.py"
-    print
-    print "Please visit http://www.parallelpython.com for extended up-to-date"
-    print "documentation, examples and support forums"
+            " [-k seconds] [-P pid_file]")
+    print('')
+    print("Options: ")
+    print("-h                 : this help message")
+    print("-d                 : set log level to debug")
+    print("-f format          : log format")
+    print("-a                 : enable auto-discovery service")
+    print("-r                 : restart worker process after each"\
+            " task completion")
+    print("-n proto           : protocol number for pickle module")
+    print("-c path            : path to config file")
+    print("-i interface       : interface to listen")
+    print("-b broadcast       : broadcast address for auto-discovery service")
+    print("-p port            : port to listen")
+    print("-w nworkers        : number of workers to start")
+    print("-s secret          : secret for authentication")
+    print("-t seconds         : timeout to exit if no connections with "\
+            "clients exist")
+    print("-k seconds         : socket timeout in seconds")
+    print("-P pid_file        : file to write PID to")
+    print('')
+    print("To print server stats send SIGUSR1 to its main process (unix only). ")
+    print('')
+    print("Due to the security concerns always use a non-trivial secret key.")
+    print("Secret key set by -s switch will override secret key assigned by")
+    print("pp_secret variable in .pythonrc.py")
+    print('')
+    print("Please visit http://www.parallelpython.com for extended up-to-date")
+    print("documentation, examples and support forums")
 
 
 def create_network_server(argv):
@@ -337,6 +341,7 @@ def create_network_server(argv):
 
     args = {}
     autodiscovery = False
+    debug = False
 
     log_level = logging.WARNING
     log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -346,10 +351,9 @@ def create_network_server(argv):
             print_usage()
             sys.exit()
         elif opt == "-c":
-            args, autodiscovery = parse_config(arg)
+            args, autodiscovery, debug = parse_config(arg)
         elif opt == "-d":
-            log_level = logging.DEBUG
-            pp.SHOW_EXPECTED_EXCEPTIONS = True
+            debug = True
         elif opt == "-f":
             log_format = arg
         elif opt == "-i":
@@ -374,6 +378,10 @@ def create_network_server(argv):
             args["socket_timeout"] = int(arg)
         elif opt == "-P":
             args["pid_file"] = arg
+	
+    if debug:
+        log_level = logging.DEBUG
+        pp.SHOW_EXPECTED_EXCEPTIONS = True
 
     log_handler = logging.StreamHandler()
     log_handler.setFormatter(logging.Formatter(log_format))

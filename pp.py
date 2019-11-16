@@ -1,5 +1,5 @@
 # Parallel Python Software: http://www.parallelpython.com
-# Copyright (c) 2005-2012, Vitalii Vanovschi
+# Copyright (c) 2005-2017, Vitalii Vanovschi
 # All rights reserved.
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -38,14 +38,15 @@ import sys
 import types
 import time
 import atexit
-import user
-import cPickle as pickle
+# import user
+import pickle
+# import cPickle as pickle
 import pptransport
 import ppauto
 import ppcommon
 
-copyright = "Copyright (c) 2005-2012 Vitalii Vanovschi. All rights reserved"
-version = "1.6.5"
+copyright = "Copyright (c) 2005-2017 Vitalii Vanovschi. All rights reserved"
+version = "1.6.6"
 
 # Reconnect persistent rworkers in seconds.
 RECONNECT_WAIT_TIME = 5
@@ -118,7 +119,7 @@ class _Task(object):
         self.result, sout = pickle.loads(self.sresult)
         self.unpickled = True
         if len(sout) > 0:
-            print sout,
+            print(sout),
         if self.callback:
             args = self.callbackargs + (self.result, )
             self.callback(*args)
@@ -532,26 +533,26 @@ class Server(object):
         """Prints job execution statistics. Useful for benchmarking on
            clusters"""
 
-        print "Job execution statistics:"
+        print("Job execution statistics:")
         walltime = time.time() - self.__creation_time
         statistics = self.get_stats().items()
         totaljobs = 0.0
         for ppserver, stat in statistics:
             totaljobs += stat.njobs
-        print " job count | % of all jobs | job time sum | " \
-                "time per job | job server"
+        print(" job count | % of all jobs | job time sum | " \
+                "time per job | job server")
         for ppserver, stat in statistics:
             if stat.njobs:
-                print "    %6i |        %6.2f |     %8.4f |  %11.6f | %s" \
+                print("    %6i |        %6.2f |     %8.4f |  %11.6f | %s" \
                         % (stat.njobs, 100.0*stat.njobs/totaljobs, stat.time,
-                        stat.time/stat.njobs, ppserver, )
-        print "Time elapsed since server creation", walltime
-        print self.__active_tasks, "active tasks,", self.get_ncpus(), "cores"
+                        stat.time/stat.njobs, ppserver, ))
+        print("Time elapsed since server creation", walltime)
+        print(self.__active_tasks, "active tasks,", self.get_ncpus(), "cores")
 
         if not self.__accurate_stats:
-            print "WARNING: statistics provided above is not accurate" \
-                  " due to job rescheduling"
-        print
+            print("WARNING: statistics provided above is not accurate" \
+                  " due to job rescheduling")
+        print('')
 
     # all methods below are for internal use only
 
@@ -820,7 +821,7 @@ class Server(object):
             try:
                 worker.t.close()
                 if sys.platform.startswith("win"):
-                    os.popen('TASKKILL /PID '+str(worker.pid)+' /F')
+                    os.popen('TASKKILL /PID '+str(worker.pid)+' /F 2>NUL')
                 else:
                     os.kill(worker.pid, 9)
                     os.waitpid(worker.pid, 0)
